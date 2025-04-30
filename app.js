@@ -66,3 +66,64 @@ app.put('/players/:playerId/', async (request, response) => {
   await database.run(editPlayerQuery)
   response.send('Player Details Updated')
 })
+
+// API - 4 GET
+app.get('/matches/:matchId/', async (request, response) => {
+  const {matchId} = request.params
+  const getRequestedMatchQuery = `
+  SELECT 
+      match_id as matchId, match, year  
+  FROM 
+      match_details
+  WHERE 
+      match_id=${matchId}`
+  const match = await database.get(getRequestedMatchQuery)
+  response.send(match)
+})
+
+// API - 5 GET
+app.get('/players/:playerId/matches', async (request, response) => {
+  const {playerId} = request.params
+  const matchDetailsQuery = `
+  SELECT 
+    match_details.match_id as matchId, match_details.match, match_details.year 
+  FROM 
+    player_match_score JOIN match_details ON match_details.match_id=player_match_score.match_id 
+  WHERE 
+    player_match_score.player_id=${playerId}`
+  const matches = await database.all(matchDetailsQuery)
+  response.send(matches)
+})
+
+// API - 6
+app.get('/matches/:matchId/players/', async (request, response) => {
+  const {matchId} = request.params
+  const playerMatchDetailsQuery = `
+  SELECT 
+    player_details.player_id as playerId, player_details.player_name as playerName 
+  FROM 
+    player_match_score JOIN player_details ON player_details.player_id=player_match_score.player_id 
+  WHERE 
+    player_match_score.match_id=${matchId}`
+  const matches = await database.all(playerMatchDetailsQuery)
+  response.send(matches)
+})
+
+// API - 7 GET
+app.get('/players/:playerId/playerScores/', async (request, response) => {
+  const {playerId} = request.params
+  const totalScoreOfPlayerQuery = `
+  SELECT 
+    player_details.player_id as playerId, player_details.player_name as playerName, 
+      SUM(player_match_score.score) as totalScore, 
+      SUM(player_match_score.fours) as totalFours,
+      SUM(player_match_score.sixes) as totalSixes
+  FROM 
+    player_match_score JOIN player_details ON player_details.player_id=player_match_score.player_id 
+  WHERE 
+    player_match_score.player_id=${playerId}`
+  const totalScore = await database.all(totalScoreOfPlayerQuery)
+  response.send(...totalScore)
+})
+
+module.exports = app
